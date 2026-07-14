@@ -26,29 +26,25 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - api-rest
       - websocket-server
+      - frontend
     restart: unless-stopped
 
-  # -----------------------------------------------------------
-  # TODO: los demas equipos deben agregar aqui sus servicios,
-  # con estos nombres exactos (o ajustar el Caddyfile si usan
-  # otros nombres):
-  # -----------------------------------------------------------
+  websocket-server:
+    build:
+      context: ./websocket-server
+    container_name: websocket-server
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    container_name: frontend
+    volumes:
+      - ./frontend-demo:/usr/share/nginx/html:ro
 
   # api-rest:
   #   build: ./api-rest
   #   container_name: api-rest
-  #   restart: unless-stopped
-
-  # websocket-server:
-  #   build: ./websocket-server
-  #   container_name: websocket-server
-  #   restart: unless-stopped
-
-  # frontend:
-  #   build: ./frontend
-  #   container_name: frontend
   #   restart: unless-stopped
 
 volumes:
