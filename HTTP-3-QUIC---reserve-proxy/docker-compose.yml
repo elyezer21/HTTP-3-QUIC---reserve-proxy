@@ -1,0 +1,52 @@
+# =========================================================
+# docker-compose.yml de PRUEBA (standalone)
+# =========================================================
+# Sirve para levantar el reverse proxy de forma aislada y
+# verificar que el enrutamiento y la negociacion HTTP/1.1,
+# HTTP/2 y HTTP/3 funcionan, ANTES de integrarlo al
+# repositorio principal del proyecto.
+#
+# Los servicios "api-rest-test" y "websocket-test" son
+# contenedores de eco (echo) que solo sirven para comprobar
+# que las peticiones llegan al backend correcto. Deben
+# eliminarse al integrar el proxy con los servicios reales.
+# =========================================================
+
+services:
+  reverse-proxy:
+    build:
+      context: ./reverse-proxy
+    container_name: reverse-proxy
+    env_file: ./reverse-proxy/.env
+    ports:
+      - "80:80"
+      - "443:443/tcp"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - websocket-server
+      - frontend
+    restart: unless-stopped
+
+  websocket-server:
+    build:
+      context: ./websocket-server
+    container_name: websocket-server
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    container_name: frontend
+    volumes:
+      - ./frontend-demo:/usr/share/nginx/html:ro
+
+  # api-rest:
+  #   build: ./api-rest
+  #   container_name: api-rest
+  #   restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Librería Pequeño Morrison — Ejemplo de integración con el Reverse Proxy</title>
+<style>
+  body { font-family: sans-serif; background:#1a1a2e; color:#eee; max-width:800px; margin:40px auto; padding:0 20px; }
+  h1 { color:#f4a261; }
+  h2 { color:#7fb3d5; margin-top:40px; }
+  button { padding:10px 20px; margin:6px 6px 6px 0; cursor:pointer; }
+  pre { background:#000; padding:12px; border-radius:6px; overflow:auto; white-space:pre-wrap; }
+  code { color:#a3e635; }
+  .ok { color:#4ade80; }
+  .err { color:#f87171; }
+  .box { background:#242440; padding:16px; border-radius:8px; margin-bottom:20px; }
+</style>
+</head>
+<body>
+
+<h1>📚 Librería Pequeño Morrison</h1>
+<p>Este archivo es un <strong>ejemplo de referencia</strong> para el Equipo 1: muestra cómo el frontend
+debe hablar con la API REST y el WebSocket <em>a través del Reverse Proxy</em>, sin conocer nunca
+su IP ni puerto real.</p>
+
+<div class="box">
+  <h2>🔑 La regla de oro</h2>
+  <p>El navegador siempre se conecta al <strong>mismo host</strong> desde donde cargó esta página
+  (el Reverse Proxy). Nunca escribas IPs ni puertos de la API o el WebSocket a mano en el código.</p>
+</div>
+
+<h2>1. Petición a la API REST — <code>fetch('/api/...')</code></h2>
+<p>Ruta relativa, sin host: el navegador la envía automáticamente al mismo servidor que sirvió la página.
+El Caddyfile del proxy intercepta <code>/api/*</code> y la reenvía a la API REST real.</p>
+<button onclick="probarApi()">Probar /api/</button>
+<pre id="apiOut">(sin probar todavía)</pre>
+
+<h2>2. Conexión a WebSockets — <code>wss://location.host/ws</code></h2>
+<p>Igual que con fetch: se usa <code>location.host</code> para construir la URL dinámicamente. El proxy
+detecta el "upgrade" de HTTP a WebSocket en la ruta <code>/ws*</code> y lo reenvía al servidor real.</p>
+<button onclick="conectarWs()">Conectar WebSocket</button>
+<button onclick="cerrarWs()">Cerrar conexión</button>
+<pre id="wsOut">(sin conectar todavía)</pre>
+
+<h2>Código fuente de este ejemplo</h2>
+<pre><code>// ------------------------------------------------------
+// 1) API REST: SIEMPRE ruta relativa, nunca IP:puerto fijo
+// ------------------------------------------------------
+async function probarApi() {
+  const out = document.getElementById('apiOut');
+  out.textContent = 'Consultando /api/ ...';
+  try {
+    const res = await fetch('/api/');
+    const texto = await res.text();
+    out.textContent = texto;
+  } catch (e) {
+    out.innerHTML = `<span class="err">Error: ${e.message}</span>`;
+  }
+}
+
+// ------------------------------------------------------
+// 2) WebSocket: se arma la URL con location.host,
+//    NUNCA con una IP o puerto escrito a mano
+// ------------------------------------------------------
+let socket = null;
+
+function conectarWs() {
+  const out = document.getElementById('wsOut');
+  const protocolo = location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const url = protocolo + location.host + '/ws?clientId=demo123';
+
+  out.textContent = 'Conectando a ' + url + ' ...';
+  socket = new WebSocket(url);
+
+  socket.onopen = () => {
+    out.innerHTML += '\n<span class="ok">Conexión abierta ✔</span>';
+  };
+  socket.onmessage = (evento) => {
+    out.textContent += '\nMensaje recibido: ' + evento.data;
+  };
+  socket.onerror = () => {
+    out.innerHTML += '\n<span class="err">Error de conexión (revisa que el backend real de WebSockets esté corriendo)</span>';
+  };
+  socket.onclose = () => {
+    out.textContent += '\nConexión cerrada.';
+  };
+}
+
+function cerrarWs() {
+  if (socket) socket.close();
+}
+</code></pre>
+</body>
+<script>
+async function probarApi() {
+  const out = document.getElementById('apiOut');
+  out.textContent = 'Consultando /api/ ...';
+  try {
+    const res = await fetch('/api/');
+    const texto = await res.text();
+    out.textContent = texto;
+  } catch (e) {
+    out.innerHTML = `<span class="err">Error: ${e.message}</span>`;
+  }
+}
+
+let socket = null;
+
+function conectarWs() {
+  const out = document.getElementById('wsOut');
+  const protocolo = location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const url = protocolo + location.host + '/ws?clientId=demo123';
+
+  out.textContent = 'Conectando a ' + url + ' ...';
+  socket = new WebSocket(url);
+
+  socket.onopen = () => {
+    out.innerHTML += '\n<span class="ok">Conexión abierta ✔</span>';
+  };
+  socket.onmessage = (evento) => {
+    out.textContent += '\nMensaje recibido: ' + evento.data;
+  };
+  socket.onerror = () => {
+    out.innerHTML += '\n<span class="err">Error de conexión (revisa que el backend real de WebSockets esté corriendo)</span>';
+  };
+  socket.onclose = () => {
+    out.textContent += '\nConexión cerrada.';
+  };
+}
+
+function cerrarWs() {
+  if (socket) socket.close();
+}
+</script>
+</html>
